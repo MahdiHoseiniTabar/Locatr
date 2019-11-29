@@ -27,7 +27,16 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,12 +50,15 @@ public class MapFragment extends SupportMapFragment {
     private static final int REQUEST_PERMISSION = 1;
     private GoogleApiClient client;
     private static final int REQUEST_CODE =0 ;
-
     public static final String TAG = "MainActivity";
     private static final String[] LOCATION_PERMISSION_GROUP = new String[]{
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
     };
+    private Bitmap mapImage;
+    private GalleryItem mapItem;
+    private Location currentLocation;
+    private GoogleMap map;
 
     public static MapFragment newInstance() {
 
@@ -81,8 +93,46 @@ public class MapFragment extends SupportMapFragment {
                 .build();
 
         setHasOptionsMenu(true);
+
+        getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(GoogleMap googleMap) {
+                map = googleMap;
+                updateUI();
+            }
+        });
     }
 
+    private void updateUI(){
+        if(map == null || mapImage== null)
+            return;
+
+        LatLng itemPoint = new LatLng(mapItem.getLat()
+                ,mapItem.getLon());
+        LatLng myPoint = new LatLng(currentLocation.getLatitude()
+                ,currentLocation.getLongitude());
+
+        BitmapDescriptor itemBitmap = BitmapDescriptorFactory
+                .fromBitmap(mapImage);
+
+        MarkerOptions itemMarker = new MarkerOptions()
+                .position(itemPoint)
+                .icon(itemBitmap);
+        MarkerOptions myMarker = new MarkerOptions()
+                .position(myPoint);
+        map.clear();
+        map.addMarker(myMarker);
+        map.addMarker(itemMarker);
+
+        int margin = getResources().getDimensionPixelSize(R.dimen.inset_margin);
+        LatLngBounds bounds = new LatLngBounds.Builder()
+                .include(myPoint)
+                .include(itemPoint)
+                .build();
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds,
+                margin);
+        map.animateCamera(cameraUpdate);
+    }
 
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
@@ -154,11 +204,13 @@ public class MapFragment extends SupportMapFragment {
 
         GalleryItem item;
         Bitmap bitmap;
+        Location location;
 
 
 
         @Override
         protected Void doInBackground(Location... locations) {
+            location=locations[0];
             FlickrFetcher fetcher = new FlickrFetcher();
             List<GalleryItem> itemList = fetcher.searchPhoto(locations[0]);
             if (itemList.size() == 0)
@@ -179,6 +231,10 @@ public class MapFragment extends SupportMapFragment {
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
 
+            currentLocation = location;
+            mapImage = bitmap;
+            mapItem = item;
+            updateUI();
         }
     }
 }

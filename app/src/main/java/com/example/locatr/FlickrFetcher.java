@@ -32,7 +32,7 @@ public class FlickrFetcher {
             .appendQueryParameter("api_key", API_KEY)
             .appendQueryParameter("format", "json")
             .appendQueryParameter("nojsoncallback", "1")
-            .appendQueryParameter("extras", "url_s")
+            .appendQueryParameter("extras", "url_s,geo")
 //            .appendQueryParameter("user_id", "34427466731@N01")
             .build();
 
@@ -101,6 +101,8 @@ public class FlickrFetcher {
             String url = photoObject.getString("url_s");
 
             GalleryItem galleryItem = new GalleryItem(id, title, url);
+            galleryItem.setLon(photoObject.getDouble("longitude"));
+            galleryItem.setLat(photoObject.getDouble("latitude"));
             items.add(galleryItem);
         }
     }
